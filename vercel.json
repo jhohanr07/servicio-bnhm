@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    { "source": "/panel", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/tecnico", "destination": "/tecnico.html" }
+  ],
+  "functions": {
+    "api/*.js": { "maxDuration": 30 }
+  },
+  "crons": [
+    { "path": "/api/cron-alertas", "schedule": "0 12 * * *" }
+  ]
+}

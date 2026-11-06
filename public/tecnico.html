@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket · BNH Medical</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --soft:#e9f6f2; --ink:#0f3d4f; --muted:#5d7a85; --line:#cfe5e0; --brand:#00668a; --accent:#2bbf9b; --bad:#b3261e; --bad-bg:#fbe4e2; --ok:#1e7a46; --ok-bg:#e2f3ea; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font-family:'Public Sans',system-ui,sans-serif; font-size:15px; line-height:1.45; }
+  header { position:relative; padding:18px 20px 18px 34px; border-bottom:6px solid var(--brand); }
+  header::before { content:""; position:absolute; left:0; top:0; bottom:0; width:14px; background:var(--accent); }
+  header h1 { margin:0; font-size:21px; color:var(--brand); }
+  header h1::before { content:"SERVICIO TÉCNICO"; display:block; font-size:10.5px; letter-spacing:.28em; color:var(--accent); font-weight:600; margin-bottom:4px; }
+  main { max-width:680px; margin:0 auto; padding:20px; }
+  .card { border:1px solid var(--line); border-top:4px solid var(--accent); border-radius:8px; padding:20px; }
+  [hidden] { display:none !important; }
+  .det { background:var(--soft); border-radius:6px; padding:10px 12px; font-size:13.5px; margin:10px 0; white-space:pre-wrap; }
+  label { display:block; font-weight:600; font-size:13px; margin:14px 0 5px; }
+  .req { color:var(--bad); }
+  input, select, textarea { width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:6px; font:inherit; color:var(--ink); background:#fff; }
+  textarea { min-height:100px; resize:vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline:3px solid var(--accent); outline-offset:1px; }
+  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px) { .grid2 { grid-template-columns:1fr; } }
+  button { font:inherit; font-weight:600; cursor:pointer; border-radius:6px; padding:10px 18px; border:1px solid var(--brand); background:var(--brand); color:#fff; margin-top:18px; }
+  button:disabled { opacity:.55; cursor:wait; }
+  .msg { padding:10px 12px; border-radius:6px; margin-top:14px; font-size:14px; }
+  .err { background:var(--bad-bg); color:var(--bad); } .okm { background:var(--ok-bg); color:var(--ok); }
+</style>
+</head>
+<body>
+<header><h1>BNH Medical</h1></header>
+<main>
+  <div class="card">
+    <h2 id="titulo" style="margin:0 0 4px;font-size:19px">Cargando ticket…</h2>
+    <div id="info" class="det" hidden></div>
+    <div id="msgErr" class="msg err" hidden role="alert"></div>
+
+    <form id="frm" hidden onsubmit="return false">
+      <div class="grid2">
+        <div><label for="fechaAtencion">Fecha de atención</label><input id="fechaAtencion" type="date"></div>
+        <div><label for="garantia">Garantía</label>
+          <select id="garantia"><option value="">Selecciona…</option><option>Sí</option><option>No</option></select>
+          <div class="hint">¿El equipo entra por garantía?</div></div>
+      </div>
+
+      <label for="obs">Observaciones</label>
+      <textarea id="obs" placeholder="Relata lo que está pasando con el equipo y cuál fue la solución."></textarea>
+
+      <label for="sitio">Atención en sitio</label>
+      <textarea id="sitio" style="min-height:70px" placeholder="¿Se debe ir al sitio? Describe brevemente la causa."></textarea>
+
+      <div class="grid2">
+        <div><label for="fechaVisita">Fecha de la visita</label><input id="fechaVisita" type="date"></div>
+        <div><label for="fechaCierre">Fecha de cierre</label><input id="fechaCierre" type="date">
+          <div class="hint">Al llenarla el ticket pasa a "Resuelto".</div></div>
+      </div>
+
+      <div id="msgOk" class="msg okm" hidden role="status"></div>
+      <button id="btnGuardar">Guardar</button>
+    </form>
+  </div>
+</main>
+
+<script>
+  const QS = new URLSearchParams(location.search);
+  const ID = /^TK-\d+$/.test(QS.get('id') || '') ? QS.get('id') : '';
+  const TK = /^[0-9a-f]{32}$/.test(QS.get('t') || '') ? QS.get('t') : '';
+  const $ = id => document.getElementById(id);
+
+  async function api(fn, ...args) {
+    let r;
+    try {
+      r = await fetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fn: fn, args: args }) });
+    } catch (e) { throw new Error('Sin conexión con el servidor.'); }
+    let j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!j) throw new Error('El servidor no devolvió datos (' + r.status + ').');
+    if (j.ok === false && r.status >= 500) throw new Error(j.error || 'Error del servidor.');
+    return j;
+  }
+  function err(m) { $('msgErr').textContent = m; $('msgErr').hidden = false; }
+
+  (async function () {
+    if (!ID || !TK) { $('titulo').textContent = 'Enlace no válido'; return err('Abre el ticket desde el botón del correo.'); }
+    try {
+      const t = await api('getTicketTecnico', ID, TK);
+      if (!t.ok) throw new Error(t.error);
+      $('titulo').textContent = 'Ticket ' + t.id + ' · ' + t.estatus;
+      $('info').textContent = t.cliente + ' · ' + t.contacto + ' · ' + t.telefono + '\n' + t.correo +
+        '\n' + t.equipo + (t.serial ? ' (serial ' + t.serial + ')' : '') +
+        '\nRegión ' + t.region + ' – ' + t.estado + '\nPrioridad ' + t.prioridad + ' · Límite ' + t.limite +
+        '\n\nFalla reportada: ' + t.descripcion;
+      $('info').hidden = false;
+      ['fechaAtencion','obs','sitio','fechaVisita','garantia','fechaCierre'].forEach(k => $(k).value = t[k] || '');
+      $('frm').hidden = false;
+    } catch (e) { $('titulo').textContent = 'No se pudo abrir el ticket'; err(e.message); }
+  })();
+
+  $('btnGuardar').onclick = async () => {
+    $('msgErr').hidden = true; $('msgOk').hidden = true; $('btnGuardar').disabled = true;
+    const d = {};
+    ['fechaAtencion','obs','sitio','fechaVisita','garantia','fechaCierre'].forEach(k => d[k] = $(k).value);
+    try {
+      const r = await api('guardarTicketTecnico', ID, TK, d);
+      if (!r.ok) throw new Error(r.error);
+      $('titulo').textContent = 'Ticket ' + ID + ' · ' + r.estatus;
+      $('msgOk').textContent = 'Cambios guardados.'; $('msgOk').hidden = false;
+    } catch (e) { err(e.message); }
+    $('btnGuardar').disabled = false;
+  };
+</script>
+</body>
+</html>

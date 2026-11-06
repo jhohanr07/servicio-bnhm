@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · BNH Medical</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --soft: #e9f6f2; --page: #f6faf9;
+    --surface: #ffffff; --ink: #0f3d4f; --muted: #5d7a85; --line: #cfe5e0;
+    --brand: #00668a; --brand-ink: #ffffff; --focus: #2bbf9b; --accent: #2bbf9b;
+    --ok: #1e7a46; --ok-bg: #e2f3ea; --warn: #9a5b00; --warn-bg: #fdf0d9;
+    --bad: #b3261e; --bad-bg: #fbe4e2; --info: #00668a; --info-bg: #e1f0f5; --idle: #55656b; --idle-bg: #e8edef;
+    /* Series de las gráficas (validadas para daltonismo y contraste) */
+    --c-pend: #0a72b8; --c-res: #1f9e7a; --track: #eef4f3; --grid: #e3ecea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: 'Public Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; }
+  [hidden] { display: none !important; }
+
+  header { position: relative; background: #fff; color: var(--brand); padding: 18px 20px 18px 34px; border-bottom: 6px solid var(--brand); overflow: hidden; }
+  header::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: var(--accent); }
+  header::after { content: "+"; position: absolute; right: 18px; top: -18px; font-size: 120px; font-weight: 700; line-height: 1; color: var(--soft); }
+  header h1 { margin: 0; font-size: 21px; font-weight: 700; color: var(--brand); position: relative; z-index: 1; }
+  header h1::before { content: "SERVICIO TÉCNICO"; display: block; font-size: 10.5px; letter-spacing: .28em; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+  header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); position: relative; z-index: 1; }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; }
+  .login { max-width: 360px; margin: 40px auto; border-top: 4px solid var(--accent); }
+  h2 { margin: 0; font-size: 18px; }
+  h3 { margin: 0 0 12px; font-size: 15px; }
+  label { display: block; font-weight: 600; font-size: 12.5px; margin: 0 0 5px; color: var(--muted); }
+  input, select { width: 100%; height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; }
+  input:focus-visible, select:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+  button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; padding: 9px 16px; border: 1px solid var(--brand); background: var(--brand); color: var(--brand-ink); }
+  button.ghost { background: transparent; color: var(--brand); }
+  button:hover:not(:disabled) { filter: brightness(.88); }
+  button.ghost:hover:not(:disabled) { background: var(--info-bg); filter: none; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .msg { padding: 10px 12px; border-radius: 6px; margin-top: 14px; font-size: 14px; }
+  .msg.err { background: var(--bad-bg); color: var(--bad); }
+  .msg.okm { background: var(--ok-bg); color: var(--ok); }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .bar .meta { color: var(--muted); font-size: 12.5px; margin-right: 10px; }
+
+  /* Filtros en una fila sobre las gráficas */
+  .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 10px; align-items: end; margin-bottom: 16px; }
+  @media (max-width: 900px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* Alerta de casos sin respuesta */
+  .alert { border: 1px solid #f0c4c0; border-left: 5px solid var(--bad); background: var(--bad-bg); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; }
+  .alert-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  .alert-title { display: flex; gap: 10px; align-items: center; color: var(--bad); font-weight: 700; }
+  .ico { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bad); color: #fff; font-size: 13px; font-weight: 700; flex: none; }
+  .alert ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; }
+  .alert li b { color: var(--bad); }
+  .alert .estado-alertas { font-size: 12.5px; color: var(--ink); margin-top: 8px; }
+  .alert button { border-color: var(--bad); background: var(--bad); }
+
+  /* Indicadores */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 420px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .kpi span { display: block; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .kpi b { display: block; font-size: 28px; line-height: 1.15; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .kpi small { font-size: 12.5px; color: var(--muted); }
+  .kpi.bad { border-color: #f0c4c0; background: var(--bad-bg); }
+  .kpi.bad b, .kpi.bad span { color: var(--bad); }
+  .kpi .ico { color: #fff !important; }
+
+  /* Gráficas */
+  .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+  .card, .kpi { min-width: 0; }
+  .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin: -4px 0 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .hrows { display: grid; gap: 8px; }
+  .hrow { display: grid; grid-template-columns: minmax(80px, 160px) minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+  .hrow:hover, .hrow.sel { background: var(--soft); }
+  .hrow .lbl { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hrow .val { font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  @media (max-width: 520px) { .hrow { grid-template-columns: 1fr auto; } .hrow .track { grid-column: 1 / -1; grid-row: 2; } main { padding: 16px; } }
+  .track { display: flex; gap: 2px; height: 16px; }
+  .seg { display: block; height: 100%; min-width: 3px; }
+  .seg:last-child { border-radius: 0 4px 4px 0; }
+
+  .vbars { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; align-items: end; height: 190px; border-bottom: 1px solid var(--grid); padding: 0 6px; }
+  .vcol { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+  .vcol .v { font-size: 12.5px; color: var(--ink); font-weight: 600; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .vcol .b { width: 70%; max-width: 64px; border-radius: 4px 4px 0 0; min-height: 2px; }
+  .vlabels { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; padding: 6px 6px 0; }
+  .vlabels span { text-align: center; font-size: 12px; color: var(--muted); }
+
+  .meter { margin-bottom: 16px; }
+  .meter .top { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+  .meter .top b { font-variant-numeric: tabular-nums; }
+  .meter .trk { height: 14px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .meter .fill { height: 100%; background: var(--c-pend); border-radius: 0 4px 4px 0; }
+
+  .empty { padding: 24px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* Tablas */
+  .block { margin-bottom: 16px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tabs button { background: transparent; color: var(--ink); border-color: var(--line); font-weight: 500; padding: 7px 12px; font-size: 13.5px; }
+  .tabs button[aria-selected="true"] { background: var(--brand); color: #fff; border-color: var(--brand); font-weight: 600; }
+  .tabs button .n { display: inline-block; margin-left: 6px; font-size: 12px; opacity: .8; }
+  .wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 13.5px; }
+  th { background: var(--soft); font-size: 12.5px; color: var(--muted); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+  th[aria-sort="ascending"]::after { content: " ▲"; font-size: 10px; }
+  th[aria-sort="descending"]::after { content: " ▼"; font-size: 10px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: 0; }
+  td small { color: var(--muted); display: block; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .s-sin { background: var(--bad-bg); color: var(--bad); }
+  .s-asig { background: var(--info-bg); color: var(--info); }
+  .s-rep { background: var(--warn-bg); color: var(--warn); }
+  .s-rpto { background: var(--idle-bg); color: var(--idle); }
+  .s-res { background: var(--ok-bg); color: var(--ok); }
+  .p1 { color: var(--bad); font-weight: 700; } .p2 { color: var(--warn); font-weight: 700; }
+  .venc { color: var(--bad); font-weight: 600; }
+
+  #tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: #fff; font-size: 12.5px; padding: 6px 9px; border-radius: 6px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.18); white-space: pre-line; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  a.lnk { color: var(--brand); font-weight: 600; font-size: 13.5px; margin-right: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BNH Medical</h1>
+  <p>Dashboard de servicio técnico</p>
+</header>
+
+<main>
+  <div class="card login" id="loginBox">
+    <h2 style="margin-bottom:12px">Acceso al dashboard</h2>
+    <label for="clave">Clave del panel</label>
+    <input id="clave" type="password" autocomplete="current-password">
+    <div id="loginErr" class="msg err" hidden role="alert"></div>
+    <div style="margin-top:16px"><button id="btnLogin">Entrar</button></div>
+  </div>
+
+  <div id="dash" hidden>
+    <div class="bar">
+      <h2>Resumen de casos</h2>
+      <div><a class="lnk" id="lnkPanel" target="_top">Ir al panel de casos</a><span class="meta" id="actualizado"></span><button class="ghost" id="btnRef">Actualizar</button></div>
+    </div>
+
+    <div class="filters">
+      <div><label for="fDesde">Reportados desde</label><input id="fDesde" type="date"></div>
+      <div><label for="fHasta">Hasta</label><input id="fHasta" type="date"></div>
+      <div><label for="fReg">Región</label><select id="fReg"></select></div>
+      <div><label for="fTec">Técnico</label><select id="fTec"></select></div>
+      <div><label for="fPri">Prioridad</label><select id="fPri"></select></div>
+      <div><button class="ghost" id="btnLimpiar">Quitar filtros</button></div>
+    </div>
+    <div id="cargaErr" class="msg err" hidden role="alert" style="margin:0 0 16px"></div>
+
+    <section class="alert" id="alertBox" hidden aria-live="polite">
+      <div class="alert-top">
+        <div class="alert-title"><span class="ico" aria-hidden="true">!</span><span id="alertTxt"></span></div>
+        <button id="btnAlertas">Enviar alertas ahora</button>
+      </div>
+      <ul id="alertList"></ul>
+      <div class="estado-alertas" id="alertEstado"></div>
+      <div id="alertMsg" class="msg" hidden role="status"></div>
+    </section>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="charts">
+      <section class="card">
+        <h3>Casos por técnico</h3>
+        <div class="legend"><span><i style="background:var(--c-pend)"></i>Pendientes</span><span><i style="background:var(--c-res)"></i>Resueltos</span></div>
+        <div class="hrows" id="chTec"></div>
+        <div class="hint">Haz clic en un técnico para filtrar todo el dashboard.</div>
+      </section>
+      <section class="card">
+        <h3>Antigüedad de los casos pendientes</h3>
+        <div class="legend"><span><i style="background:var(--c-pend)"></i>Menos de 3 días</span><span><i style="background:var(--bad)"></i>3 días o más (generan alerta si no tienen respuesta)</span></div>
+        <div id="chEdad"></div>
+      </section>
+      <section class="card">
+        <h3>Tiempo promedio de respuesta por técnico</h3>
+        <div class="hrows" id="chResp"></div>
+        <div class="hint">Días entre el reporte y la fecha de atención que registra el técnico.</div>
+      </section>
+      <section class="card">
+        <h3>Garantía y visitas en sitio</h3>
+        <div id="chMix"></div>
+      </section>
+    </div>
+
+    <section class="card block">
+      <h3>Rendimiento por técnico</h3>
+      <div class="wrap"><table id="tTec"></table></div>
+    </section>
+
+    <section class="card block">
+      <h3>Detalle de casos</h3>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="wrap"><table id="tCasos"></table></div>
+    </section>
+  </div>
+</main>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<script>
+  const BASE = '';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const HORA = 36e5, DIA = 864e5;
+
+  async function api(fn, ...args) {
+    let r;
+    try {
+      r = await fetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fn: fn, args: args }) });
+    } catch (e) { throw new Error('Sin conexión con el servidor.'); }
+    let j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!j) throw new Error('El servidor no devolvió datos (' + r.status + ').');
+    if (j.ok === false && r.status >= 500) throw new Error(j.error || 'Error del servidor.');
+    return j;
+  }
+
+  /* ---------- Formatos ---------- */
+  const num1 = n => n.toLocaleString('es-VE', { maximumFractionDigits: 1, minimumFractionDigits: n < 10 && n % 1 ? 1 : 0 });
+  function fDur(ms) {                       // duración en horas o días
+    if (ms == null) return '—';
+    if (ms < DIA) return Math.max(1, Math.round(ms / HORA)) + ' h';
+    const d = ms / DIA;
+    return num1(d) + (d < 1.05 ? ' día' : ' días');
+  }
+  function fDias(d) {                       // días calendario
+    if (d == null) return '—';
+    if (d === 0) return 'mismo día';
+    return num1(d) + (d === 1 ? ' día' : ' días');
+  }
+  const fFecha = ms => ms ? new Date(ms).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const fFechaHora = ms => ms ? new Date(ms).toLocaleString('es-VE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const prom = arr => arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : null;
+  const clsEstatus = { 'Sin asignar':'s-sin', 'Asignado':'s-asig', 'En reparación':'s-rep', 'Esperando repuesto':'s-rpto', 'Resuelto':'s-res', 'Cerrado':'s-res' };
+
+  /* ---------- Estado ---------- */
+  let CLAVE = '', D = null, T = [], TAB = 'abiertos', timer = null;
+  const SORT = { tec: { k: 'pend', dir: -1 }, casos: { k: 'edad', dir: -1 } };
+
+  /* ---------- Acceso y carga ---------- */
+  async function entrar() {
+    $('loginErr').hidden = true; $('btnLogin').disabled = true;
+    try {
+      const r = await api('panelLogin', $('clave').value);
+      if (!r.ok) throw new Error(r.error);
+      CLAVE = $('clave').value;
+      $('loginBox').hidden = true; $('dash').hidden = false;
+      await cargar();
+      timer = setInterval(cargar, 120000);
+    } catch (e) { $('loginErr').textContent = e.message; $('loginErr').hidden = false; }
+    $('btnLogin').disabled = false;
+  }
+
+  async function cargar() {
+    $('btnRef').disabled = true;
+    try {
+      const r = await api('getDashboardData', CLAVE);
+      if (!r.ok) throw new Error(r.error);
+      D = r; T = preparar(r);
+      llenarFiltros(); render();
+      $('cargaErr').hidden = true;
+      $('actualizado').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { $('cargaErr').textContent = 'No se pudieron cargar los datos: ' + e.message; $('cargaErr').hidden = false; }
+    $('btnRef').disabled = false;
+  }
+
+  // Métricas por ticket
+  function preparar(r) {
+    const ahora = r.ahora, limite = r.horasAlerta * HORA;
+    return r.tickets.map(t => {
+      const abierto = r.abiertos.indexOf(t.estatus) >= 0;
+      const sinAtender = r.sinRespuesta.indexOf(t.estatus) >= 0 && !t.atencion;
+      return Object.assign({}, t, {
+        tec: t.tecnico || 'Sin asignar',
+        abierto: abierto,
+        edad: abierto && t.fecha ? ahora - t.fecha : null,
+        dur: !abierto && t.fecha && t.cierre ? Math.max(0, t.cierre - t.fecha) : null,
+        gar: /^s[ií]/i.test(t.garantia),
+        enSitio: !!t.visita || (!!t.sitio && !/^\s*no\b/i.test(t.sitio)),
+        sinResp: abierto && sinAtender && !!t.fecha && ahora - t.fecha >= limite,
+        vencido: abierto && !!t.limite && t.limite < ahora
+      });
+    });
+  }
+
+  /* ---------- Filtros ---------- */
+  function llenarFiltros() {
+    const poner = (id, titulo, vals) => {
+      const sel = $(id), prev = sel.value;
+      sel.innerHTML = '<option value="">' + titulo + '</option>' + vals.map(v => '<option>' + esc(v) + '</option>').join('');
+      sel.value = vals.indexOf(prev) >= 0 ? prev : '';
+    };
+    const tecs = D.tecnicos.map(t => t.nombre);
+    T.forEach(t => { if (t.tecnico && tecs.indexOf(t.tecnico) < 0) tecs.push(t.tecnico); });
+    poner('fReg', 'Todas', D.regiones);
+    poner('fTec', 'Todos', tecs.concat(['Sin asignar']));
+    poner('fPri', 'Todas', ['P1', 'P2', 'P3', 'P4']);
+  }
+
+  function filtrados() {
+    const de = $('fDesde').value ? new Date($('fDesde').value + 'T00:00:00').getTime() : null;
+    const ha = $('fHasta').value ? new Date($('fHasta').value + 'T23:59:59').getTime() : null;
+    const reg = $('fReg').value, tec = $('fTec').value, pri = $('fPri').value;
+    return T.filter(t => (!de || (t.fecha && t.fecha >= de)) && (!ha || (t.fecha && t.fecha <= ha)) &&
+      (!reg || t.region === reg) && (!tec || t.tec === tec) && (!pri || t.prioridad === pri));
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    if (!D) return;
+    const rows = filtrados();
+    renderAlertas(rows);
+    renderKpis(rows);
+    const g = porTecnico(rows);
+    renderTec(g);
+    renderEdad(rows);
+    renderResp(g);
+    renderMix(rows);
+    renderTablaTec(g);
+    renderTabs(rows);
+    renderCasos(rows);
+  }
+
+  function porTecnico(rows) {
+    const m = {};
+    rows.forEach(t => {
+      const k = t.tec;
+      const x = m[k] || (m[k] = { tec: k, region: '', pend: 0, res: 0, sinResp: 0, venc: 0, resp: [], dur: [], edad: [], gar: 0, sitio: 0, total: 0 });
+      x.total++;
+      if (t.abierto) { x.pend++; if (t.edad != null) x.edad.push(t.edad); } else x.res++;
+      if (t.sinResp) x.sinResp++;
+      if (t.vencido) x.venc++;
+      if (t.respDias != null) x.resp.push(t.respDias);
+      if (t.dur != null) x.dur.push(t.dur);
+      if (t.gar) x.gar++;
+      if (t.enSitio) x.sitio++;
+    });
+    D.tecnicos.forEach(tc => { if (m[tc.nombre]) m[tc.nombre].region = tc.region; });
+    return Object.keys(m).map(k => {
+      const x = m[k];
+      x.respProm = prom(x.resp); x.durProm = prom(x.dur); x.edadProm = prom(x.edad);
+      return x;
+    });
+  }
+
+  function renderAlertas(rows) {
+    const casos = rows.filter(t => t.sinResp).sort((a, b) => b.edad - a.edad);
+    $('alertBox').hidden = !casos.length;
+    if (!casos.length) return;
+    $('alertTxt').textContent = casos.length === 1 ? '1 caso lleva más de 3 días sin respuesta'
+      : casos.length + ' casos llevan más de 3 días sin respuesta';
+    $('alertList').innerHTML = casos.slice(0, 8).map(t =>
+      '<li><b>' + esc(t.id) + '</b> · ' + esc(t.cliente) + ' · ' + esc(t.equipo) + ' · ' + esc(t.tec) +
+      ' · <b>' + fDur(t.edad) + '</b>' + (t.alerta ? ' · último aviso ' + fFechaHora(t.alerta) : ' · sin aviso enviado') + '</li>').join('') +
+      (casos.length > 8 ? '<li>…y ' + (casos.length - 8) + ' más en la pestaña "Sin respuesta +3 días".</li>' : '');
+    $('alertEstado').textContent = D.alertasActivas
+      ? 'Alertas automáticas activas: el sistema revisa ' + (D.minutosRevision >= 1440 ? 'una vez al día' : D.minutosRevision >= 60 ? 'cada ' + Math.round(D.minutosRevision / 60) + ' horas' : 'cada ' + D.minutosRevision + ' minutos') + ' y avisa al técnico por correo (se repite cada 24 h si sigue sin respuesta).'
+      : 'Las alertas automáticas no están activadas. Revisa la tarea programada (Cron) del proyecto en Vercel.';
+  }
+
+  async function enviarAlertas() {
+    $('btnAlertas').disabled = true; $('alertMsg').hidden = true;
+    try {
+      const r = await api('enviarAlertasAhora', CLAVE);
+      if (!r.ok) throw new Error(r.error);
+      $('alertMsg').className = 'msg okm';
+      $('alertMsg').textContent = r.enviadas
+        ? 'Se enviaron ' + r.enviadas + ' correo(s) de alerta.' + (r.omitidas ? ' ' + r.omitidas + ' caso(s) ya tenían un aviso en las últimas 24 h.' : '')
+        : 'No se envió ningún correo: ' + (r.omitidas ? r.omitidas + ' caso(s) ya tenían un aviso en las últimas 24 h.' : 'no hay casos pendientes de aviso.') +
+          (r.sinCorreo ? ' ' + r.sinCorreo + ' sin correo de técnico ni CORREO_ADMIN.' : '');
+      $('alertMsg').hidden = false;
+      await cargar();
+    } catch (e) {
+      $('alertMsg').className = 'msg err'; $('alertMsg').textContent = e.message; $('alertMsg').hidden = false;
+    }
+    $('btnAlertas').disabled = false;
+  }
+
+  function renderKpis(rows) {
+    const ab = rows.filter(t => t.abierto), res = rows.filter(t => !t.abierto);
+    const resp = rows.map(t => t.respDias).filter(x => x != null);
+    const dur = res.map(t => t.dur).filter(x => x != null);
+    const edad = ab.map(t => t.edad).filter(x => x != null);
+    const sin = rows.filter(t => t.sinResp).length;
+    const gar = rows.filter(t => t.gar).length, sitio = rows.filter(t => t.enSitio).length;
+    const k = [
+      ['Pendientes', ab.length, ab.filter(t => !t.tecnico).length + ' sin técnico asignado'],
+      ['Resueltos', res.length, pct(res.length, rows.length) + ' de ' + rows.length + ' casos'],
+      ['Sin respuesta +3 días', sin, sin ? 'requieren atención inmediata' : 'ningún caso atrasado', sin ? 'bad' : ''],
+      ['Casos con SLA vencido', rows.filter(t => t.vencido).length, 'abiertos después de su fecha límite'],
+      ['Tiempo promedio de respuesta', resp.length ? fDias(prom(resp)) : '—', resp.length + ' casos con fecha de atención'],
+      ['Duración promedio hasta el cierre', dur.length ? fDur(prom(dur)) : '—', dur.length + ' casos cerrados con fecha'],
+      ['Antigüedad promedio de pendientes', edad.length ? fDur(prom(edad)) : '—', edad.length ? 'el más antiguo: ' + fDur(Math.max.apply(null, edad)) : 'sin casos pendientes'],
+      ['Por garantía · En sitio', gar + ' · ' + sitio, pct(gar, rows.length) + ' garantía · ' + pct(sitio, rows.length) + ' con visita']
+    ];
+    $('kpis').innerHTML = k.map(x =>
+      '<div class="kpi ' + (x[3] || '') + '"><span>' + (x[3] ? '<span class="ico" aria-hidden="true" style="width:16px;height:16px;font-size:11px;margin-right:6px;display:inline-grid">!</span>' : '') +
+      esc(x[0]) + '</span><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></div>').join('');
+  }
+
+  function renderTec(g) {
+    const el = $('chTec');
+    const list = g.slice().sort((a, b) => b.pend - a.pend || b.res - a.res);
+    if (!list.length) { el.innerHTML = '<div class="empty">No hay casos con esos filtros.</div>'; return; }
+    const max = Math.max.apply(null, list.map(x => x.pend + x.res)) || 1;
+    const sel = $('fTec').value;
+    el.innerHTML = list.map(x => {
+      const segs = [];
+      if (x.pend) segs.push('<i class="seg" style="width:' + (x.pend / max * 100) + '%;background:var(--c-pend)" data-tip="' + esc(x.tec) + '\nPendientes: ' + x.pend + '"></i>');
+      if (x.res) segs.push('<i class="seg" style="width:' + (x.res / max * 100) + '%;background:var(--c-res)" data-tip="' + esc(x.tec) + '\nResueltos: ' + x.res + '"></i>');
+      return '<div class="hrow' + (sel === x.tec ? ' sel' : '') + '" role="button" tabindex="0" data-tec="' + esc(x.tec) + '" aria-label="' +
+        esc(x.tec + ': ' + x.pend + ' pendientes, ' + x.res + ' resueltos') + '">' +
+        '<span class="lbl" title="' + esc(x.tec) + '">' + esc(x.tec) + '</span><div class="track">' + segs.join('') + '</div>' +
+        '<span class="val">' + x.pend + ' pend. · ' + x.res + ' res.</span></div>';
+    }).join('');
+    el.querySelectorAll('.hrow').forEach(r => {
+      const go = () => { const v = r.getAttribute('data-tec'); $('fTec').value = $('fTec').value === v ? '' : v; render(); };
+      r.onclick = go;
+      r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+    });
+  }
+
+  function renderEdad(rows) {
+    const ab = rows.filter(t => t.abierto && t.edad != null);
+    const B = [['< 1 día', 0, 1], ['1–3 días', 1, 3], ['3–7 días', 3, 7], ['7–15 días', 7, 15], ['> 15 días', 15, Infinity]];
+    if (!ab.length) { $('chEdad').innerHTML = '<div class="empty">No hay casos pendientes con esos filtros.</div>'; return; }
+    const n = B.map(b => ab.filter(t => t.edad >= b[1] * DIA && t.edad < b[2] * DIA).length);
+    const max = Math.max.apply(null, n) || 1;
+    $('chEdad').innerHTML = '<div class="vbars">' + B.map((b, i) =>
+      '<div class="vcol"><span class="v">' + n[i] + '</span><span class="b" style="height:' + (n[i] / max * 85) + '%;background:' +
+      (b[1] >= 3 ? 'var(--bad)' : 'var(--c-pend)') + '" data-tip="' + b[0] + ' abiertos\n' + n[i] + ' caso(s)"></span></div>').join('') + '</div>' +
+      '<div class="vlabels">' + B.map(b => '<span>' + b[0] + '</span>').join('') + '</div>';
+  }
+
+  function renderResp(g) {
+    const list = g.filter(x => x.respProm != null).sort((a, b) => b.respProm - a.respProm);
+    if (!list.length) { $('chResp').innerHTML = '<div class="empty">Ningún caso tiene fecha de atención todavía.</div>'; return; }
+    const max = Math.max.apply(null, list.map(x => x.respProm)) || 1;
+    $('chResp').innerHTML = list.map(x =>
+      '<div class="hrow" style="cursor:default"><span class="lbl" title="' + esc(x.tec) + '">' + esc(x.tec) + '</span>' +
+      '<div class="track"><i class="seg" style="width:' + Math.max(1, x.respProm / max * 100) + '%;background:var(--c-pend)" data-tip="' +
+      esc(x.tec) + '\nPromedio: ' + fDias(x.respProm) + '\nCasos atendidos: ' + x.resp.length + '"></i></div>' +
+      '<span class="val">' + fDias(x.respProm) + ' · ' + x.resp.length + ' casos</span></div>').join('');
+  }
+
+  function renderMix(rows) {
+    const n = rows.length;
+    if (!n) { $('chMix').innerHTML = '<div class="empty">No hay casos con esos filtros.</div>'; return; }
+    const res = rows.filter(t => !t.abierto);
+    const m = [
+      ['Entraron por garantía', rows.filter(t => t.gar).length, n, 'de todos los casos'],
+      ['Necesitaron visita en sitio', rows.filter(t => t.enSitio).length, n, 'de todos los casos'],
+      ['Resueltos por garantía', res.filter(t => t.gar).length, res.length, 'de los resueltos'],
+      ['Resueltos con visita en sitio', res.filter(t => t.enSitio).length, res.length, 'de los resueltos']
+    ];
+    $('chMix').innerHTML = m.map(x =>
+      '<div class="meter"><div class="top"><span>' + x[0] + '</span><b>' + x[1] + ' de ' + x[2] + ' · ' + pct(x[1], x[2]) + '</b></div>' +
+      '<div class="trk" data-tip="' + x[0] + '\n' + x[1] + ' ' + x[3] + ' (' + pct(x[1], x[2]) + ')"><div class="fill" style="width:' +
+      (x[2] ? x[1] / x[2] * 100 : 0) + '%"></div></div></div>').join('') +
+      '<div class="hint">En sitio cuenta los casos con fecha de visita o con una causa escrita en "Atención en sitio" que no empiece por "No".</div>';
+  }
+
+  /* ---------- Tablas ordenables ---------- */
+  function tabla(el, cols, rows, sort, vacio) {
+    const c = cols.filter(x => x.k === sort.k)[0] || cols[0];
+    const v = c.v || (r => r[c.k]);
+    const datos = rows.slice().sort((a, b) => {
+      const x = v(a), y = v(b);
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      return (typeof x === 'string' ? x.localeCompare(y, 'es') : x - y) * sort.dir;
+    });
+    el.innerHTML = '<thead><tr>' + cols.map(x => '<th class="' + (x.num ? 'num' : '') + '" data-k="' + x.k + '" tabindex="0"' +
+      (x.k === sort.k ? ' aria-sort="' + (sort.dir > 0 ? 'ascending' : 'descending') + '"' : '') + '>' + x.t + '</th>').join('') + '</tr></thead><tbody>' +
+      (datos.length ? datos.map(r => '<tr>' + cols.map(x => '<td class="' + (x.num ? 'num' : '') + '">' + x.f(r) + '</td>').join('') + '</tr>').join('')
+        : '<tr><td colspan="' + cols.length + '" class="empty">' + vacio + '</td></tr>') + '</tbody>';
+    el.querySelectorAll('th').forEach(th => {
+      const go = () => { const k = th.getAttribute('data-k'); if (sort.k === k) sort.dir *= -1; else { sort.k = k; sort.dir = -1; } render(); };
+      th.onclick = go;
+      th.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+    });
+  }
+
+  function renderTablaTec(g) {
+    tabla($('tTec'), [
+      { k: 'tec', t: 'Técnico', f: x => esc(x.tec) + (x.region ? '<small>' + esc(x.region) + '</small>' : '') },
+      { k: 'pend', t: 'Pendientes', num: 1, f: x => x.pend },
+      { k: 'res', t: 'Resueltos', num: 1, f: x => x.res },
+      { k: 'sinResp', t: 'Sin respuesta +3 días', num: 1, f: x => x.sinResp ? '<span class="venc">' + x.sinResp + '</span>' : '0' },
+      { k: 'venc', t: 'SLA vencido', num: 1, f: x => x.venc ? '<span class="venc">' + x.venc + '</span>' : '0' },
+      { k: 'respProm', t: 'Respuesta promedio', num: 1, f: x => fDias(x.respProm) },
+      { k: 'durProm', t: 'Duración promedio', num: 1, f: x => fDur(x.durProm) },
+      { k: 'edadProm', t: 'Antigüedad de pendientes', num: 1, f: x => fDur(x.edadProm) },
+      { k: 'gar', t: 'Garantía', num: 1, f: x => x.gar },
+      { k: 'sitio', t: 'En sitio', num: 1, f: x => x.sitio }
+    ], g, SORT.tec, 'No hay casos con esos filtros.');
+  }
+
+  const TABS = [
+    ['abiertos', 'Pendientes', t => t.abierto],
+    ['sinresp', 'Sin respuesta +3 días', t => t.sinResp],
+    ['resueltos', 'Resueltos', t => !t.abierto],
+    ['garantia', 'Por garantía', t => t.gar],
+    ['sitio', 'Con visita en sitio', t => t.enSitio],
+    ['todos', 'Todos', () => true]
+  ];
+
+  function renderTabs(rows) {
+    $('tabs').innerHTML = TABS.map(x => '<button role="tab" aria-selected="' + (x[0] === TAB) + '" data-tab="' + x[0] + '">' + x[1] +
+      '<span class="n">' + rows.filter(x[2]).length + '</span></button>').join('');
+    $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => {
+      TAB = b.getAttribute('data-tab');
+      SORT.casos = TAB === 'resueltos' ? { k: 'edad', dir: -1 } : { k: 'edad', dir: -1 };
+      render();
+    });
+  }
+
+  function renderCasos(rows) {
+    const tab = TABS.filter(x => x[0] === TAB)[0];
+    tabla($('tCasos'), [
+      { k: 'id', t: 'Ticket', f: t => '<b>' + esc(t.id) + '</b><small>' + fFecha(t.fecha) + '</small>' },
+      { k: 'cliente', t: 'Cliente', f: t => esc(t.cliente) + '<small>' + esc(t.estado) + ' · ' + esc(t.region) + '</small>' },
+      { k: 'equipo', t: 'Equipo', f: t => esc(t.equipo) + (t.serial ? '<small>Serial ' + esc(t.serial) + '</small>' : '') },
+      { k: 'tec', t: 'Técnico', f: t => t.tecnico ? esc(t.tecnico) : '<span class="venc">Sin técnico</span>' },
+      { k: 'prioridad', t: 'Prioridad', f: t => '<span class="' + (t.prioridad === 'P1' ? 'p1' : t.prioridad === 'P2' ? 'p2' : '') + '">' + esc(t.prioridad) + '</span>' },
+      { k: 'estatus', t: 'Estatus', f: t => '<span class="badge ' + (clsEstatus[t.estatus] || 's-rpto') + '">' + esc(t.estatus) + '</span>' +
+          (t.vencido ? '<small class="venc">SLA vencido</small>' : '') },
+      { k: 'edad', t: 'Tiempo abierto', num: 1, v: t => t.abierto ? t.edad : t.dur,
+        f: t => t.abierto ? (t.sinResp ? '<span class="venc">' + fDur(t.edad) + '</span><small>sin respuesta</small>' : fDur(t.edad))
+          : fDur(t.dur) + '<small>duró hasta el cierre</small>' },
+      { k: 'respDias', t: 'Respuesta', num: 1, f: t => t.respDias != null ? fDias(t.respDias) + '<small>' + fFecha(t.atencion) + '</small>' : '—' },
+      { k: 'gar', t: 'Garantía', v: t => t.garantia, f: t => esc(t.garantia || '—') },
+      { k: 'enSitio', t: 'En sitio', v: t => t.enSitio ? 1 : 0, f: t => t.enSitio ? 'Sí' + (t.visita ? '<small>visita ' + fFecha(t.visita) + '</small>' : '') + (t.sitio ? '<small>' + esc(t.sitio.slice(0, 80)) + '</small>' : '') : 'No' }
+    ], rows.filter(tab[2]), SORT.casos, 'No hay casos en esta vista.');
+  }
+
+  /* ---------- Tooltip ---------- */
+  const tip = $('tip');
+  function mostrarTip(el, x, y) {
+    tip.textContent = el.getAttribute('data-tip'); tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - w - 8, x + 14) + 'px';
+    tip.style.top = Math.max(8, y - h - 10) + 'px';
+  }
+  document.addEventListener('mousemove', e => {
+    const el = e.target.closest('[data-tip]');
+    if (el) mostrarTip(el, e.clientX, e.clientY); else tip.hidden = true;
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest('[data-tip]') || (e.target.querySelector && e.target.querySelector('[data-tip]'));
+    if (el) { const r = el.getBoundingClientRect(); mostrarTip(el, r.left, r.top); } else tip.hidden = true;
+  });
+  document.addEventListener('scroll', () => { tip.hidden = true; }, true);
+
+  /* ---------- Eventos ---------- */
+  $('lnkPanel').href = BASE + '/panel';
+  $('btnLogin').onclick = entrar;
+  $('clave').onkeydown = e => { if (e.key === 'Enter') entrar(); };
+  $('btnRef').onclick = cargar;
+  $('btnAlertas').onclick = enviarAlertas;
+  ['fDesde', 'fHasta', 'fReg', 'fTec', 'fPri'].forEach(id => $(id).onchange = render);
+  $('btnLimpiar').onclick = () => { ['fDesde', 'fHasta', 'fReg', 'fTec', 'fPri'].forEach(id => $(id).value = ''); render(); };
+</script>
+</body>
+</html>

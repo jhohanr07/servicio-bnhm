@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BNH Medical · Servicio técnico</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --soft: #e9f6f2;
+    --surface: #ffffff; --ink: #0f3d4f; --muted: #5d7a85; --line: #cfe5e0;
+    --brand: #00668a; --brand-ink: #ffffff; --focus: #2bbf9b; --accent: #2bbf9b;
+    --ok: #1e7a46; --ok-bg: #e2f3ea; --warn: #9a5b00; --warn-bg: #fdf0d9;
+    --bad: #b3261e; --bad-bg: #fbe4e2; --info: #00668a; --info-bg: #e1f0f5; --idle: #55656b; --idle-bg: #e8edef;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Public Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; }
+
+  /* Encabezado estilo informe BNH */
+  header { position: relative; background: #fff; color: var(--brand); padding: 18px 20px 18px 34px; border-bottom: 6px solid var(--brand); overflow: hidden; }
+  header::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: var(--accent); }
+  header::after { content: "+"; position: absolute; right: 18px; top: -18px; font-size: 120px; font-weight: 700; line-height: 1; color: var(--soft); }
+  header h1 { margin: 0; font-size: 21px; font-weight: 700; color: var(--brand); position: relative; z-index: 1; }
+  header h1::before { content: "SERVICIO TÉCNICO"; display: block; font-size: 10.5px; letter-spacing: .28em; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+  header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); position: relative; z-index: 1; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 8px; padding: 20px; }
+  [hidden] { display: none !important; }
+
+  /* Formulario */
+  .narrow { max-width: 680px; margin: 0 auto; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 14px 0 5px; }
+  label .req { color: var(--bad); }
+  input, select, textarea { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+  textarea { min-height: 110px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; padding: 10px 18px; border: 1px solid var(--brand); background: var(--brand); color: var(--brand-ink); }
+  button.ghost { background: transparent; color: var(--brand); }
+  button:hover:not(:disabled) { filter: brightness(.88); }
+  button.ghost:hover:not(:disabled) { background: var(--info-bg); filter: none; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .msg { padding: 10px 12px; border-radius: 6px; margin-top: 14px; font-size: 14px; }
+  .msg.err { background: var(--bad-bg); color: var(--bad); }
+  .done h2 { margin: 0 0 6px; font-size: 20px; }
+  .tk { font-size: 30px; font-weight: 700; color: var(--brand); letter-spacing: .02em; margin: 8px 0; }
+
+  /* Autocompletado */
+  .ac { position: relative; }
+  #sug { position: absolute; z-index: 5; left: 0; right: 0; margin: 2px 0 0; padding: 4px 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; max-height: 260px; overflow: auto; box-shadow: 0 6px 18px rgba(0,0,0,.14); }
+  #sug li { padding: 9px 12px; cursor: pointer; font-size: 14px; }
+  #sug li:hover, #sug li[aria-selected="true"] { background: var(--soft); }
+  input[readonly] { background: var(--soft); }
+
+  /* Panel */
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .bar h2 { margin: 0; font-size: 18px; }
+  a.lnk { color: var(--brand); font-weight: 600; font-size: 13.5px; margin-right: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; border-left-width: 5px; }
+  .kpi b { display: block; font-size: 26px; line-height: 1.1; }
+  .kpi span { font-size: 12.5px; color: var(--muted); }
+  .kpi.k-ok { border-left-color: var(--ok); } .kpi.k-info { border-left-color: var(--info); }
+  .kpi.k-warn { border-left-color: var(--warn); } .kpi.k-bad { border-left-color: var(--bad); } .kpi.k-idle { border-left-color: var(--idle); }
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr) 2fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 860px) { .filters { grid-template-columns: 1fr 1fr; } }
+  .filters select, .filters input { padding: 8px 10px; }
+  .wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; min-width: 880px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 13.5px; }
+  th { background: var(--soft); font-size: 12.5px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td small { color: var(--muted); display: block; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .s-sin { background: var(--bad-bg); color: var(--bad); }
+  .s-asig { background: var(--info-bg); color: var(--info); }
+  .s-rep { background: var(--warn-bg); color: var(--warn); }
+  .s-rpto { background: var(--idle-bg); color: var(--idle); }
+  .s-res { background: var(--ok-bg); color: var(--ok); }
+  .p1 { color: var(--bad); font-weight: 700; } .p2 { color: var(--warn); font-weight: 700; }
+  .venc { color: var(--bad); font-weight: 600; }
+  .sec { margin: 22px 0 8px; font-size: 15px; font-weight: 700; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  table.small { min-width: 0; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; padding: 22px; width: min(560px, 94vw); background: var(--surface); color: var(--ink); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog h3 { margin: 0 0 4px; }
+  .det { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 13.5px; margin: 10px 0; white-space: pre-wrap; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .login { max-width: 360px; margin: 40px auto; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BNH Medical</h1>
+  <p id="sub"></p>
+</header>
+
+<main>
+
+<!-- ============ FORMULARIO DEL CLIENTE ============ -->
+<section id="vForm" hidden>
+  <div class="card narrow" id="formBox">
+    <h2 style="margin:0 0 4px;font-size:19px">Reporta la falla de tu equipo</h2>
+    <p style="margin:0;color:var(--muted)">Lo asignamos al técnico de tu región y te enviamos el número de ticket por correo.</p>
+
+    <label for="cliente">Nombre completo <span class="req">*</span></label>
+    <div class="ac">
+      <input id="cliente" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sug" aria-autocomplete="list">
+      <ul id="sug" role="listbox" hidden></ul>
+    </div>
+    <div class="hint" id="cliHint">Escribe el nombre completo de tu clínica o empresa; aparecerá cuando coincida con tu registro.</div>
+
+    <div class="grid2">
+      <div><label for="contacto">Persona de contacto <span class="req">*</span></label><input id="contacto" autocomplete="name"></div>
+      <div><label for="telefono">Teléfono <span class="req">*</span></label><input id="telefono" type="tel" autocomplete="tel"><div class="hint" id="telHint"></div></div>
+    </div>
+
+    <div class="grid2">
+      <div><label for="correo">Correo <span class="req">*</span></label><input id="correo" type="email" autocomplete="email"><div class="hint" id="correoHint"></div></div>
+      <div><label for="estado">Estado donde está el equipo <span class="req">*</span></label>
+        <select id="estado"><option value="">Selecciona…</option></select></div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label for="equipoSel">Equipo y modelo <span class="req">*</span></label>
+        <select id="equipoSel" hidden></select>
+        <input id="equipoMan" placeholder="Ej.: Ecógrafo UMP-DP50" aria-label="Equipo y modelo">
+        <div class="hint" id="eqHint"></div>
+      </div>
+      <div><label for="serial">Serial</label><input id="serial"></div>
+    </div>
+
+    <label for="urgencia">¿Qué tan urgente es? <span class="req">*</span></label>
+    <select id="urgencia"><option value="">Selecciona…</option></select>
+
+    <label for="descripcion">¿Qué está pasando? <span class="req">*</span></label>
+    <textarea id="descripcion" placeholder="Describe la falla, mensajes de error y desde cuándo ocurre."></textarea>
+
+    <div id="formErr" class="msg err" hidden role="alert"></div>
+    <div style="margin-top:18px"><button id="btnEnviar">Enviar reporte</button></div>
+  </div>
+
+  <div class="card narrow done" id="doneBox" hidden>
+    <h2>Reporte recibido</h2>
+    <p style="margin:0">Tu número de ticket es:</p>
+    <div class="tk" id="tkId"></div>
+    <p id="tkTxt" style="margin:0 0 16px"></p>
+    <button class="ghost" id="btnOtro">Reportar otra falla</button>
+  </div>
+</section>
+
+<!-- ============ PANEL ============ -->
+<section id="vPanel" hidden>
+  <div class="card login" id="loginBox">
+    <h2 style="margin:0 0 4px;font-size:18px">Acceso al panel</h2>
+    <label for="clave">Clave</label>
+    <input id="clave" type="password" autocomplete="current-password">
+    <div id="loginErr" class="msg err" hidden role="alert"></div>
+    <div style="margin-top:16px"><button id="btnLogin">Entrar</button></div>
+  </div>
+
+  <div id="panelBox" hidden>
+    <div class="bar">
+      <h2>Casos reportados</h2>
+      <div><a class="lnk" id="lnkDash" target="_top">Ver dashboard</a><span id="actualizado" style="color:var(--muted);font-size:12.5px;margin-right:10px"></span><button class="ghost" id="btnRef">Actualizar</button></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="filters">
+      <select id="fReg"></select>
+      <select id="fEst"></select>
+      <select id="fTec"></select>
+      <select id="fPri"></select>
+      <input id="fTxt" placeholder="Buscar cliente, equipo o ticket">
+    </div>
+    <div class="wrap"><table>
+      <thead><tr><th>Ticket</th><th>Cliente</th><th>Equipo</th><th>Región</th><th>Asignado a</th><th>Prioridad</th><th>Estatus</th><th>Límite SLA</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+
+    <div class="sec">Carga por técnico</div>
+    <div class="wrap"><table class="small">
+      <thead><tr><th>Técnico</th><th>Región</th><th>Abiertos</th><th>Resueltos</th><th>Vencidos</th></tr></thead>
+      <tbody id="tbTec"></tbody>
+    </table></div>
+  </div>
+
+  <dialog id="dlg">
+    <h3 id="dTitulo"></h3>
+    <div id="dInfo" class="det"></div>
+    <label for="dEstatus">Estatus</label><select id="dEstatus"></select>
+    <label for="dTec">Técnico asignado</label><select id="dTec"></select>
+    <label for="dNota">Agregar observación</label><textarea id="dNota" style="min-height:70px"></textarea>
+    <div id="dErr" class="msg err" hidden role="alert"></div>
+    <div class="actions"><button class="ghost" id="dCancel">Cancelar</button><button id="dSave">Guardar cambios</button></div>
+  </dialog>
+</section>
+
+</main>
+
+<script>
+  const VISTA = location.pathname.replace(/\/+$/, '') === '/panel' ? 'panel' : 'form';
+  const BASE = '';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Llamada al servidor con promesa; rechaza si la respuesta llega vacía
+  async function api(fn, ...args) {
+    let r;
+    try {
+      r = await fetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fn: fn, args: args }) });
+    } catch (e) { throw new Error('Sin conexión con el servidor.'); }
+    let j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!j) throw new Error('El servidor no devolvió datos (' + r.status + ').');
+    if (j.ok === false && r.status >= 500) throw new Error(j.error || 'Error del servidor.');
+    return j;
+  }
+
+  /* ---------------- FORMULARIO ---------------- */
+  let SEL = { ref: '', telReg: false, correoReg: false }, EQ = [], timerBus = null, nBus = 0, idxSug = -1;
+  const ETIQ_ESTADO = e => e === 'Distrito Capital' ? 'Distrito Capital (Caracas)' : e;
+
+  async function initForm() {
+    $('sub').textContent = 'Reporte de fallas de equipos';
+    $('vForm').hidden = false;
+    pintarEquipos();
+    try {
+      const c = await api('getFormConfig');
+      if (!c.ok) throw new Error(c.error);
+      c.estados.forEach(e => $('estado').add(new Option(ETIQ_ESTADO(e), e)));
+      c.urgencias.forEach(u => $('urgencia').add(new Option(u.texto, u.id)));
+      api('calentarDatos').catch(() => {});   // precarga clientes y equipos en segundo plano
+    } catch (e) { showFormErr('No se pudo cargar el formulario: ' + e.message); }
+
+    $('cliente').addEventListener('input', () => {
+      if (SEL.ref && $('cliente').value !== SEL.ref) limpiarSeleccion();
+      clearTimeout(timerBus);
+      const q = $('cliente').value.trim();
+      if (q.length < 3) { cerrarSug(); return; }
+      timerBus = setTimeout(async () => {
+        const n = ++nBus;
+        try {
+          const r = await api('buscarClientes', q);
+          if (n === nBus) mostrarSug(r.items || []);
+        } catch (e) { cerrarSug(); }
+      }, 300);
+    });
+    $('cliente').addEventListener('keydown', teclasSug);
+    document.addEventListener('click', ev => { if (!ev.target.closest('.ac')) cerrarSug(); });
+
+    $('equipoSel').onchange = () => {
+      const v = $('equipoSel').value;
+      if (v === 'otro') { $('equipoMan').hidden = false; $('equipoMan').value = ''; $('serial').value = ''; $('serial').readOnly = false; }
+      else if (v === '') { $('equipoMan').hidden = true; $('serial').value = ''; $('serial').readOnly = true; }
+      else {
+        const e = EQ[+v];
+        $('equipoMan').hidden = true; $('serial').value = e.serial; $('serial').readOnly = true;
+        if (e.estado) $('estado').value = e.estado;
+      }
+    };
+
+    $('btnEnviar').onclick = async () => {
+      $('formErr').hidden = true;
+      const d = { refCliente: SEL.ref };
+      ['cliente','contacto','telefono','correo','estado','serial','urgencia','descripcion'].forEach(k => d[k] = $(k).value);
+      d.equipo = equipoElegido();
+      if (!d.telefono.trim() && !SEL.telReg) return showFormErr('Escribe un teléfono de contacto.');
+      if (!d.correo.trim() && !SEL.correoReg) return showFormErr('Escribe un correo de contacto.');
+      $('btnEnviar').disabled = true; $('btnEnviar').textContent = 'Enviando…';
+      try {
+        const r = await api('crearTicket', d);
+        if (!r.ok) throw new Error(r.error);
+        $('tkId').textContent = r.id;
+        $('tkTxt').textContent = r.tecnico
+          ? 'Región ' + r.region + '. Técnico asignado: ' + r.tecnico + '. Te escribiremos al correo registrado.'
+          : 'Región ' + r.region + '. En breve te asignaremos un técnico y te escribiremos al correo registrado.';
+        $('formBox').hidden = true; $('doneBox').hidden = false;
+      } catch (e) { showFormErr(e.message); }
+      $('btnEnviar').disabled = false; $('btnEnviar').textContent = 'Enviar reporte';
+    };
+    $('btnOtro').onclick = () => {
+      ['descripcion','urgencia'].forEach(k => $(k).value = '');
+      pintarEquipos();
+      $('doneBox').hidden = true; $('formBox').hidden = false;
+    };
+  }
+
+  function equipoElegido() {
+    const v = $('equipoSel').value;
+    if (!$('equipoSel').hidden && v !== '' && v !== 'otro') return EQ[+v].equipo;
+    return $('equipoMan').value;
+  }
+
+  function mostrarSug(items) {
+    const ul = $('sug'); ul.innerHTML = ''; idxSug = -1;
+    if (!items.length) { cerrarSug(); return; }
+    items.forEach((n, i) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option'); li.id = 'sug' + i; li.textContent = n;
+      li.onmousedown = ev => { ev.preventDefault(); elegir(n); };
+      ul.appendChild(li);
+    });
+    ul.hidden = false; $('cliente').setAttribute('aria-expanded', 'true');
+  }
+  function cerrarSug() { $('sug').hidden = true; $('cliente').setAttribute('aria-expanded', 'false'); idxSug = -1; }
+  function teclasSug(e) {
+    const lis = $('sug').children;
+    if ($('sug').hidden || !lis.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      idxSug = (idxSug + (e.key === 'ArrowDown' ? 1 : -1) + lis.length) % lis.length;
+      Array.prototype.forEach.call(lis, (li, i) => li.setAttribute('aria-selected', String(i === idxSug)));
+    } else if (e.key === 'Enter' && idxSug >= 0) { e.preventDefault(); elegir(lis[idxSug].textContent); }
+    else if (e.key === 'Escape') cerrarSug();
+  }
+
+  async function elegir(nombre) {
+    cerrarSug();
+    $('cliente').value = nombre; SEL.ref = nombre;
+    $('cliHint').textContent = 'Buscando tus datos…';
+    try {
+      const r = await api('seleccionarCliente', nombre);
+      if (!r.ok) throw new Error(r.error);
+      if (SEL.ref !== nombre) return;
+      if (r.contacto) $('contacto').value = r.contacto;
+      SEL.telReg = r.tel.tiene; SEL.correoReg = r.correo.tiene;
+      $('telefono').value = ''; $('correo').value = '';
+      $('telefono').placeholder = r.tel.tiene ? 'Usar el número registrado' : '';
+      $('correo').placeholder = r.correo.tiene ? 'Usar el correo registrado' : '';
+      $('telHint').textContent = r.tel.tiene ? 'Registrado: ' + r.tel.mascara + '. Déjalo vacío para usarlo o escribe otro.' : 'No lo tenemos registrado: escríbelo.';
+      $('correoHint').textContent = r.correo.tiene ? 'Registrado: ' + r.correo.mascara + '. Déjalo vacío para usarlo o escribe otro.' : 'No lo tenemos registrado: escríbelo.';
+      if (r.estado) $('estado').value = r.estado;
+      EQ = r.equipos || [];
+      pintarEquipos();
+      $('cliHint').textContent = EQ.length ? 'Datos cargados. Elige el equipo con la falla.' : 'Datos cargados. No encontramos equipos a tu nombre: escríbelo manualmente.';
+    } catch (e) {
+      SEL.ref = '';
+      $('cliHint').textContent = 'No se pudieron cargar tus datos; complétalos manualmente.';
+    }
+  }
+
+  function limpiarSeleccion() {
+    SEL = { ref: '', telReg: false, correoReg: false }; EQ = [];
+    ['telHint','correoHint','eqHint'].forEach(id => $(id).textContent = '');
+    $('telefono').placeholder = ''; $('correo').placeholder = '';
+    $('cliHint').textContent = 'Escribe el nombre completo de tu clínica o empresa; aparecerá cuando coincida con tu registro.';
+    pintarEquipos();
+  }
+
+  function pintarEquipos() {
+    const s = $('equipoSel');
+    s.innerHTML = '';
+    $('equipoMan').value = ''; $('serial').value = '';
+    if (!EQ.length) { s.hidden = true; $('equipoMan').hidden = false; $('serial').readOnly = false; return; }
+    s.add(new Option('Selecciona el equipo…', ''));
+    EQ.forEach((e, i) => s.add(new Option(e.etiqueta, String(i))));
+    s.add(new Option('Otro equipo (escribir manualmente)', 'otro'));
+    s.hidden = false; $('equipoMan').hidden = true; $('serial').readOnly = true;
+  }
+
+  function showFormErr(m) { $('formErr').textContent = m; $('formErr').hidden = false; }
+
+  /* ---------------- PANEL ---------------- */
+  let CLAVE = '', DATA = null, actual = null, timer = null;
+  const clsEstatus = { 'Sin asignar':'s-sin', 'Asignado':'s-asig', 'En reparación':'s-rep', 'Esperando repuesto':'s-rpto', 'Resuelto':'s-res', 'Cerrado':'s-res' };
+  const abierto = t => ['Resuelto','Cerrado'].indexOf(t.estatus) < 0;
+
+  function initPanel() {
+    $('sub').textContent = 'Panel de seguimiento';
+    $('vPanel').hidden = false;
+    $('lnkDash').href = BASE + '/dashboard';
+    const entrar = async () => {
+      $('loginErr').hidden = true; $('btnLogin').disabled = true;
+      try {
+        const r = await api('panelLogin', $('clave').value);
+        if (!r.ok) throw new Error(r.error);
+        CLAVE = $('clave').value;
+        $('loginBox').hidden = true; $('panelBox').hidden = false;
+        await cargar();
+        timer = setInterval(() => { if (!$('dlg').open) cargar(); }, 60000);
+      } catch (e) { $('loginErr').textContent = e.message; $('loginErr').hidden = false; }
+      $('btnLogin').disabled = false;
+    };
+    $('btnLogin').onclick = entrar;
+    $('clave').onkeydown = e => { if (e.key === 'Enter') entrar(); };
+    $('btnRef').onclick = cargar;
+    ['fReg','fEst','fTec','fPri'].forEach(id => $(id).onchange = render);
+    $('fTxt').oninput = render;
+    $('dCancel').onclick = () => $('dlg').close();
+    $('dSave').onclick = guardar;
+  }
+
+  async function cargar() {
+    try {
+      const r = await api('getPanelData', CLAVE);
+      if (!r.ok) throw new Error(r.error);
+      DATA = r;
+      llenarFiltros();
+      render();
+      $('actualizado').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { $('tbody').innerHTML = '<tr><td colspan="9" class="empty">No se pudieron cargar los casos: ' + esc(e.message) + '</td></tr>'; }
+  }
+
+  function llenarFiltros() {
+    const mantener = (id, titulo, vals) => {
+      const sel = $(id), prev = sel.value;
+      sel.innerHTML = '<option value="">' + titulo + '</option>' + vals.map(v => '<option>' + esc(v) + '</option>').join('');
+      sel.value = vals.indexOf(prev) >= 0 ? prev : '';
+    };
+    mantener('fReg', 'Todas las regiones', DATA.regiones);
+    mantener('fEst', 'Todos los estatus', DATA.estatus);
+    mantener('fTec', 'Todos los técnicos', DATA.tecnicos.map(t => t.nombre).concat(['Sin asignar']));
+    mantener('fPri', 'Todas las prioridades', ['P1','P2','P3','P4']);
+  }
+
+  function filtrados() {
+    const r = $('fReg').value, e = $('fEst').value, t = $('fTec').value, p = $('fPri').value, q = $('fTxt').value.trim().toLowerCase();
+    return DATA.tickets.filter(x =>
+      (!r || x.region === r) && (!e || x.estatus === e) &&
+      (!t || (t === 'Sin asignar' ? !x.tecnico : x.tecnico === t)) && (!p || x.prioridad === p) &&
+      (!q || (x.id + ' ' + x.cliente + ' ' + x.equipo + ' ' + x.serial).toLowerCase().indexOf(q) >= 0));
+  }
+
+  function render() {
+    if (!DATA) return;
+    const all = DATA.tickets;
+    const k = [
+      ['Total de casos', all.length, 'k-idle'],
+      ['Sin asignar', all.filter(t => t.estatus === 'Sin asignar').length, 'k-bad'],
+      ['En atención', all.filter(t => ['Asignado','En reparación','Esperando repuesto'].indexOf(t.estatus) >= 0).length, 'k-info'],
+      ['Resueltos', all.filter(t => !abierto(t)).length, 'k-ok'],
+      ['SLA vencido', all.filter(t => t.vencido).length, 'k-warn']
+    ];
+    $('kpis').innerHTML = k.map(x => '<div class="kpi ' + x[2] + '"><b>' + x[1] + '</b><span>' + x[0] + '</span></div>').join('');
+
+    const rows = filtrados();
+    $('tbody').innerHTML = rows.length ? rows.map((t, i) =>
+      '<tr><td><b>' + esc(t.id) + '</b><small>' + esc(t.fecha) + '</small></td>' +
+      '<td>' + esc(t.cliente) + '<small>' + esc(t.contacto) + ' · ' + esc(t.telefono) + '</small></td>' +
+      '<td>' + esc(t.equipo) + (t.serial ? '<small>Serial ' + esc(t.serial) + '</small>' : '') + '</td>' +
+      '<td>' + esc(t.region) + '<small>' + esc(t.estado) + '</small></td>' +
+      '<td>' + (t.tecnico ? esc(t.tecnico) : '<span class="venc">Sin técnico</span>') + '</td>' +
+      '<td class="' + (t.prioridad === 'P1' ? 'p1' : t.prioridad === 'P2' ? 'p2' : '') + '">' + esc(t.prioridad) + '</td>' +
+      '<td><span class="badge ' + (clsEstatus[t.estatus] || 's-rpto') + '">' + esc(t.estatus) + '</span>' + (t.cierre ? '<small>' + esc(t.cierre) + '</small>' : '') + '</td>' +
+      '<td>' + (t.vencido ? '<span class="venc">Vencido</span><small>' + esc(t.limite) + '</small>' : esc(t.limite)) + '</td>' +
+      '<td><button class="ghost" data-id="' + esc(t.id) + '">Gestionar</button></td></tr>').join('')
+      : '<tr><td colspan="9" class="empty">No hay casos con esos filtros.</td></tr>';
+    $('tbody').querySelectorAll('button[data-id]').forEach(b => b.onclick = () => abrir(b.getAttribute('data-id')));
+
+    $('tbTec').innerHTML = DATA.tecnicos.map(tc => {
+      const m = all.filter(t => t.tecnico === tc.nombre);
+      return '<tr><td>' + esc(tc.nombre) + (tc.activo ? '' : ' <small>(inactivo)</small>') + '</td><td>' + esc(tc.region) + '</td>' +
+        '<td>' + m.filter(abierto).length + '</td><td>' + m.filter(t => !abierto(t)).length + '</td>' +
+        '<td>' + m.filter(t => t.vencido).length + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" class="empty">Agrega técnicos en la hoja TECNICOS.</td></tr>';
+  }
+
+  function abrir(id) {
+    actual = DATA.tickets.filter(t => t.id === id)[0];
+    if (!actual) return;
+    $('dTitulo').textContent = 'Ticket ' + actual.id;
+    $('dInfo').textContent = actual.cliente + ' · ' + actual.contacto + ' · ' + actual.telefono + '\n' + actual.correo +
+      '\n' + actual.equipo + (actual.serial ? ' (serial ' + actual.serial + ')' : '') + '\nRegión ' + actual.region + ' – ' + actual.estado +
+      '\n\nFalla: ' + actual.descripcion +
+      (actual.obs ? '\n\nObservaciones:\n' + actual.obs : '') +
+      (actual.garantia ? '\n\nGarantía: ' + actual.garantia : '') +
+      (actual.sitio ? '\nEn sitio: ' + actual.sitio : '') +
+      (actual.visita ? '\nVisita: ' + actual.visita : '');$('dEstatus').innerHTML = DATA.estatus.map(s => '<option>' + esc(s) + '</option>').join('');
+    $('dEstatus').value = actual.estatus;
+    $('dTec').innerHTML = '<option value="">Sin asignar</option>' + DATA.tecnicos.filter(t => t.activo || t.nombre === actual.tecnico)
+      .map(t => '<option value="' + esc(t.nombre) + '">' + esc(t.nombre) + ' (' + esc(t.region) + ')</option>').join('');
+    $('dTec').value = actual.tecnico;
+    $('dNota').value = ''; $('dErr').hidden = true;
+    $('dlg').showModal();
+  }
+
+  async function guardar() {
+    $('dSave').disabled = true; $('dErr').hidden = true;
+    try {
+      const r = await api('actualizarTicket', CLAVE, actual.id, $('dEstatus').value, $('dTec').value, $('dNota').value);
+      if (!r.ok) throw new Error(r.error);
+      $('dlg').close();
+      await cargar();
+    } catch (e) { $('dErr').textContent = e.message; $('dErr').hidden = false; }
+    $('dSave').disabled = false;
+  }
+
+  if (VISTA === 'panel') initPanel(); else initForm();
+</script>
+</body>
+</html>
